@@ -84,7 +84,6 @@ function renderCard(stats: {
 }) {
   const W = 960;
   const H = 220;
-  const pad = 28;
   const colW = W / 3;
 
   const leftCX = colW / 2;
@@ -180,10 +179,11 @@ export async function GET(req: Request) {
     if (k !== "user") return new Response("Bad request", { status: 400 });
   }
 
-  const cacheKeyUrl = new URL("/api/streak", url.origin).toString();
+  const cache = await caches.open("streak-badge");
+  const cacheKeyUrl = `${url.origin}/api/streak?user=${encodeURIComponent(allowedUser)}`;
   const cacheKey = new Request(cacheKeyUrl, { headers: { Accept: "image/svg+xml" } });
 
-  const cached = await caches.default.match(cacheKey);
+  const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
   const yearsRes = await ghGraphQL<any>(
@@ -218,8 +218,7 @@ export async function GET(req: Request) {
     }),
   );
 
-  const allDays = perYear.flat();
-  const stats = computeAllStats(allDays);
+  const stats = computeAllStats(perYear.flat());
   const body = renderCard(stats);
 
   const res = new Response(body, {
@@ -229,6 +228,6 @@ export async function GET(req: Request) {
     },
   });
 
-  await caches.default.put(cacheKey, res.clone());
+  await cache.put(cacheKey, res.clone());
   return res;
 }

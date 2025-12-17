@@ -160,9 +160,22 @@ async function ghGraphQL<T>(token: string, query: string, variables: any): Promi
   });
 
   const text = await r.text();
-  if (!r.ok) throw new Error(`GitHub API ${r.status}: ${text.slice(0, 500)}`);
+  if (!r.ok) throw new Error(`GitHub API ${r.status}: ${text.slice(0, 300)}`);
 
-  return JSON.parse(text) as T;
+  const json = JSON.parse(text);
+  if (json?.errors?.length) throw new Error(String(json.errors[0]?.message || "GraphQL error"));
+  return json as T;
+}
+
+function buildMultiYearQuery(years: number[]) {
+  const fields = years
+    .map((y) => {
+      const from = `${y}-01-01T00:00:00Z`;
+      const to = `${y + 1}-01-01T00:00:00Z`;
+      return `y${y}: contributionsCollection(from: "${from}", to: "${to}") { contributionCalendar { weeks { contributionDays { date contributionCount } } } }`;
+    })
+    .join("\n");
+  return `query($login:String!){ user(login:$login){ ${fields} } }`;
 }
 
 export async function GET(req: Request) {
@@ -182,13 +195,6 @@ export async function GET(req: Request) {
     const user = url.searchParams.get("user") || allowedUser;
     if (user !== allowedUser) return new Response("Not found", { status: 404 });
 
-    const cache = await caches.open("streak-badge");
-    const cacheKeyUrl = `${url.origin}/api/streak?user=${encodeURIComponent(allowedUser)}`;
-    const cacheKey = new Request(cacheKeyUrl);
-
-    const cached = await cache.match(cacheKey);
-    if (cached) return cached;
-
     const yearsRes = await ghGraphQL<any>(
       token,
       `query($login:String!){user(login:$login){contributionsCollection{contributionYears}}}`,
@@ -198,42 +204,29 @@ export async function GET(req: Request) {
     const years: number[] = yearsRes?.data?.user?.contributionsCollection?.contributionYears ?? [];
     if (!years.length) return new Response("No contribution years found", { status: 404 });
 
-    const perYear = await Promise.all(
-      years.map(async (y) => {
-        const from = new Date(Date.UTC(y, 0, 1, 0, 0, 0));
-        const to = new Date(Date.UTC(y + 1, 0, 1, 0, 0, 0));
+    const multiQuery = buildMultiYearQuery(years);
+    const multiRes = await ghGraphQL<any>(token, multiQuery, { login: user });
 
-        const yrRes = await ghGraphQL<any>(
-          token,
-          `query($login:String!, $from:DateTime!, $to:DateTime!) {
-            user(login:$login) {
-              contributionsCollection(from:$from, to:$to) {
-                contributionCalendar { weeks { contributionDays { date contributionCount } } }
-              }
-            }
-          }`,
-          { login: user, from: from.toISOString(), to: to.toISOString() },
-        );
+    const u = multiRes?.data?.user ?? {};
+    const allDays: Day[] = [];
 
-        const weeks = yrRes?.data?.user?.contributionsCollection?.contributionCalendar?.weeks ?? [];
-        return weeks.flatMap((w: any) => w.contributionDays) as Day[];
-      }),
-    );
+    for (const y of years) {
+      const weeks = u?.[`y${y}`]?.contributionCalendar?.weeks ?? [];
+      const days: Day[] = weeks.flatMap((w: any) => w.contributionDays);
+      allDays.push(...days);
+    }
 
-    const stats = computeAllStats(perYear.flat());
+    const stats = computeAllStats(allDays);
     const body = renderCard(stats);
 
-    const res = new Response(body, {
+    return new Response(body, {
       headers: {
         "Content-Type": "image/svg+xml; charset=utf-8",
-        "Cache-Control": `public, s-maxage=${cacheSeconds}, stale-while-revalidate=86400`,
+        "Cache-Control": `public, max-age=0, s-maxage=${cacheSeconds}, stale-while-revalidate=86400`,
       },
     });
-
-    await cache.put(cacheKey, res.clone());
-    return res;
   } catch (e: any) {
     const msg = (e?.message || "Unknown error").toString();
-    return new Response(`Error: ${msg.slice(0, 1000)}`, { status: 500 });
+    return new Response(`Error: ${msg.slice(0, 800)}`, { status: 500 });
   }
 }

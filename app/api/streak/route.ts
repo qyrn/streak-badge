@@ -82,12 +82,11 @@ function renderCard(stats: {
   maxStart: string;
   maxEnd: string;
 }) {
-  const W = 900;
+  const W = 960;
   const H = 220;
-  const pad = 36;
+  const pad = 28;
   const colW = W / 3;
 
-  const innerW = colW - pad * 2;
   const leftCX = colW / 2;
   const midCX = colW + colW / 2;
   const rightCX = colW * 2 + colW / 2;
@@ -97,6 +96,9 @@ function renderCard(stats: {
   const textMuted = "#6b7280";
   const border = "#e5e7eb";
   const bg = "#ffffff";
+
+  const font =
+    'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"';
 
   const totalRange = `${fmt(stats.firstActive)} - Present`;
   const curRange = `${fmt(stats.currentStart)} - ${fmt(stats.currentEnd)}`;
@@ -113,44 +115,41 @@ function renderCard(stats: {
   <line x1="${colW * 2}" y1="22" x2="${colW * 2}" y2="${H - 22}" stroke="${border}" />
 
   <text x="${leftCX}" y="82" text-anchor="middle"
-        fill="${textDark}" font-size="54" font-weight="700"
-        font-family="system-ui, -apple-system, Segoe UI, Roboto">${stats.total.toLocaleString("en-US")}</text>
+        fill="${textDark}" font-size="54" font-weight="800"
+        font-family="${font}">${stats.total.toLocaleString("en-US")}</text>
   <text x="${leftCX}" y="122" text-anchor="middle"
         fill="${textDark}" font-size="20"
-        font-family="system-ui, -apple-system, Segoe UI, Roboto">Total Contributions</text>
+        font-family="${font}">Total Contributions</text>
   <text x="${leftCX}" y="156" text-anchor="middle"
-        textLength="${innerW}" lengthAdjust="spacingAndGlyphs"
-        fill="${textMuted}" font-size="16"
-        font-family="system-ui, -apple-system, Segoe UI, Roboto">${totalRange}</text>
+        fill="${textMuted}" font-size="15"
+        font-family="${font}">${totalRange}</text>
 
   <g transform="translate(${midCX}, 78)">
     <circle cx="0" cy="0" r="54" fill="none" stroke="${orange}" stroke-width="10" />
     <text x="0" y="12" text-anchor="middle"
-          fill="${textDark}" font-size="44" font-weight="800"
-          font-family="system-ui, -apple-system, Segoe UI, Roboto">${stats.current}</text>
+          fill="${textDark}" font-size="44" font-weight="900"
+          font-family="${font}">${stats.current}</text>
     <g transform="translate(-11,-74)">
       <path d="${flamePath}" fill="${orange}" />
     </g>
   </g>
 
   <text x="${midCX}" y="165" text-anchor="middle"
-        fill="${orange}" font-size="20" font-weight="700"
-        font-family="system-ui, -apple-system, Segoe UI, Roboto">Current Streak</text>
+        fill="${orange}" font-size="20" font-weight="800"
+        font-family="${font}">Current Streak</text>
   <text x="${midCX}" y="192" text-anchor="middle"
-        textLength="${innerW}" lengthAdjust="spacingAndGlyphs"
-        fill="${textMuted}" font-size="16"
-        font-family="system-ui, -apple-system, Segoe UI, Roboto">${curRange}</text>
+        fill="${textMuted}" font-size="15"
+        font-family="${font}">${curRange}</text>
 
   <text x="${rightCX}" y="82" text-anchor="middle"
-        fill="${textDark}" font-size="54" font-weight="700"
-        font-family="system-ui, -apple-system, Segoe UI, Roboto">${stats.max.toLocaleString("en-US")}</text>
+        fill="${textDark}" font-size="54" font-weight="800"
+        font-family="${font}">${stats.max.toLocaleString("en-US")}</text>
   <text x="${rightCX}" y="122" text-anchor="middle"
         fill="${textDark}" font-size="20"
-        font-family="system-ui, -apple-system, Segoe UI, Roboto">Longest Streak</text>
+        font-family="${font}">Longest Streak</text>
   <text x="${rightCX}" y="156" text-anchor="middle"
-        textLength="${innerW}" lengthAdjust="spacingAndGlyphs"
-        fill="${textMuted}" font-size="16"
-        font-family="system-ui, -apple-system, Segoe UI, Roboto">${maxRange}</text>
+        fill="${textMuted}" font-size="15"
+        font-family="${font}">${maxRange}</text>
 </svg>`;
 }
 
@@ -165,11 +164,27 @@ async function ghGraphQL<T>(token: string, query: string, variables: any): Promi
 }
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const user = url.searchParams.get("user") || "vestal2k";
   const token = process.env.GITHUB_TOKEN;
-
   if (!token) return new Response("Missing GITHUB_TOKEN", { status: 500 });
+
+  const allowedUser = process.env.ALLOWED_USER || "vestal2k";
+  const cacheSeconds = Number(process.env.CACHE_SECONDS || "21600");
+
+  const url = new URL(req.url);
+  const userParam = url.searchParams.get("user");
+  const user = userParam || allowedUser;
+
+  if (user !== allowedUser) return new Response("Not found", { status: 404 });
+
+  for (const [k] of url.searchParams) {
+    if (k !== "user") return new Response("Bad request", { status: 400 });
+  }
+
+  const cacheKeyUrl = new URL("/api/streak", url.origin).toString();
+  const cacheKey = new Request(cacheKeyUrl, { headers: { Accept: "image/svg+xml" } });
+
+  const cached = await caches.default.match(cacheKey);
+  if (cached) return cached;
 
   const yearsRes = await ghGraphQL<any>(
     token,
@@ -180,37 +195,40 @@ export async function GET(req: Request) {
   const years: number[] = yearsRes?.data?.user?.contributionsCollection?.contributionYears ?? [];
   if (!years.length) return new Response("No contribution years found", { status: 404 });
 
-  const allDays: Day[] = [];
+  const perYear = await Promise.all(
+    years.map(async (y) => {
+      const from = new Date(Date.UTC(y, 0, 1, 0, 0, 0));
+      const to = new Date(Date.UTC(y + 1, 0, 1, 0, 0, 0));
 
-  for (const y of years) {
-    const from = new Date(Date.UTC(y, 0, 1, 0, 0, 0));
-    const to = new Date(Date.UTC(y + 1, 0, 1, 0, 0, 0));
-
-    const yrRes = await ghGraphQL<any>(
-      token,
-      `query($login:String!, $from:DateTime!, $to:DateTime!) {
-        user(login:$login) {
-          contributionsCollection(from:$from, to:$to) {
-            contributionCalendar {
-              weeks { contributionDays { date contributionCount } }
+      const yrRes = await ghGraphQL<any>(
+        token,
+        `query($login:String!, $from:DateTime!, $to:DateTime!) {
+          user(login:$login) {
+            contributionsCollection(from:$from, to:$to) {
+              contributionCalendar { weeks { contributionDays { date contributionCount } } }
             }
           }
-        }
-      }`,
-      { login: user, from: from.toISOString(), to: to.toISOString() },
-    );
+        }`,
+        { login: user, from: from.toISOString(), to: to.toISOString() },
+      );
 
-    const weeks = yrRes?.data?.user?.contributionsCollection?.contributionCalendar?.weeks ?? [];
-    const days: Day[] = weeks.flatMap((w: any) => w.contributionDays);
-    allDays.push(...days);
-  }
+      const weeks = yrRes?.data?.user?.contributionsCollection?.contributionCalendar?.weeks ?? [];
+      const days: Day[] = weeks.flatMap((w: any) => w.contributionDays);
+      return days;
+    }),
+  );
 
+  const allDays = perYear.flat();
   const stats = computeAllStats(allDays);
+  const body = renderCard(stats);
 
-  return new Response(renderCard(stats), {
+  const res = new Response(body, {
     headers: {
       "Content-Type": "image/svg+xml; charset=utf-8",
-      "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=86400",
+      "Cache-Control": `public, s-maxage=${cacheSeconds}, stale-while-revalidate=86400`,
     },
   });
+
+  await caches.default.put(cacheKey, res.clone());
+  return res;
 }

@@ -158,76 +158,82 @@ async function ghGraphQL<T>(token: string, query: string, variables: any): Promi
     headers: { Authorization: `bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
   });
-  if (!r.ok) throw new Error(await r.text());
-  return (await r.json()) as T;
+
+  const text = await r.text();
+  if (!r.ok) throw new Error(`GitHub API ${r.status}: ${text.slice(0, 500)}`);
+
+  return JSON.parse(text) as T;
 }
 
 export async function GET(req: Request) {
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) return new Response("Missing GITHUB_TOKEN", { status: 500 });
+  try {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) return new Response("Missing GITHUB_TOKEN", { status: 500 });
 
-  const allowedUser = process.env.ALLOWED_USER || "vestal2k";
-  const cacheSeconds = Number(process.env.CACHE_SECONDS || "21600");
+    const allowedUser = process.env.ALLOWED_USER || "vestal2k";
+    const cacheSeconds = Number(process.env.CACHE_SECONDS || "21600");
 
-  const url = new URL(req.url);
-  const userParam = url.searchParams.get("user");
-  const user = userParam || allowedUser;
+    const url = new URL(req.url);
 
-  if (user !== allowedUser) return new Response("Not found", { status: 404 });
+    for (const [k] of url.searchParams) {
+      if (k !== "user") return new Response("Bad request", { status: 400 });
+    }
 
-  for (const [k] of url.searchParams) {
-    if (k !== "user") return new Response("Bad request", { status: 400 });
-  }
+    const user = url.searchParams.get("user") || allowedUser;
+    if (user !== allowedUser) return new Response("Not found", { status: 404 });
 
-  const cache = await caches.open("streak-badge");
-  const cacheKeyUrl = `${url.origin}/api/streak?user=${encodeURIComponent(allowedUser)}`;
-  const cacheKey = new Request(cacheKeyUrl, { headers: { Accept: "image/svg+xml" } });
+    const cache = await caches.open("streak-badge");
+    const cacheKeyUrl = `${url.origin}/api/streak?user=${encodeURIComponent(allowedUser)}`;
+    const cacheKey = new Request(cacheKeyUrl);
 
-  const cached = await cache.match(cacheKey);
-  if (cached) return cached;
+    const cached = await cache.match(cacheKey);
+    if (cached) return cached;
 
-  const yearsRes = await ghGraphQL<any>(
-    token,
-    `query($login:String!){user(login:$login){contributionsCollection{contributionYears}}}`,
-    { login: user },
-  );
+    const yearsRes = await ghGraphQL<any>(
+      token,
+      `query($login:String!){user(login:$login){contributionsCollection{contributionYears}}}`,
+      { login: user },
+    );
 
-  const years: number[] = yearsRes?.data?.user?.contributionsCollection?.contributionYears ?? [];
-  if (!years.length) return new Response("No contribution years found", { status: 404 });
+    const years: number[] = yearsRes?.data?.user?.contributionsCollection?.contributionYears ?? [];
+    if (!years.length) return new Response("No contribution years found", { status: 404 });
 
-  const perYear = await Promise.all(
-    years.map(async (y) => {
-      const from = new Date(Date.UTC(y, 0, 1, 0, 0, 0));
-      const to = new Date(Date.UTC(y + 1, 0, 1, 0, 0, 0));
+    const perYear = await Promise.all(
+      years.map(async (y) => {
+        const from = new Date(Date.UTC(y, 0, 1, 0, 0, 0));
+        const to = new Date(Date.UTC(y + 1, 0, 1, 0, 0, 0));
 
-      const yrRes = await ghGraphQL<any>(
-        token,
-        `query($login:String!, $from:DateTime!, $to:DateTime!) {
-          user(login:$login) {
-            contributionsCollection(from:$from, to:$to) {
-              contributionCalendar { weeks { contributionDays { date contributionCount } } }
+        const yrRes = await ghGraphQL<any>(
+          token,
+          `query($login:String!, $from:DateTime!, $to:DateTime!) {
+            user(login:$login) {
+              contributionsCollection(from:$from, to:$to) {
+                contributionCalendar { weeks { contributionDays { date contributionCount } } }
+              }
             }
-          }
-        }`,
-        { login: user, from: from.toISOString(), to: to.toISOString() },
-      );
+          }`,
+          { login: user, from: from.toISOString(), to: to.toISOString() },
+        );
 
-      const weeks = yrRes?.data?.user?.contributionsCollection?.contributionCalendar?.weeks ?? [];
-      const days: Day[] = weeks.flatMap((w: any) => w.contributionDays);
-      return days;
-    }),
-  );
+        const weeks = yrRes?.data?.user?.contributionsCollection?.contributionCalendar?.weeks ?? [];
+        return weeks.flatMap((w: any) => w.contributionDays) as Day[];
+      }),
+    );
 
-  const stats = computeAllStats(perYear.flat());
-  const body = renderCard(stats);
+    const stats = computeAllStats(perYear.flat());
+    const body = renderCard(stats);
 
-  const res = new Response(body, {
-    headers: {
-      "Content-Type": "image/svg+xml; charset=utf-8",
-      "Cache-Control": `public, s-maxage=${cacheSeconds}, stale-while-revalidate=86400`,
-    },
-  });
+    const res = new Response(body, {
+      headers: {
+        "Content-Type": "image/svg+xml; charset=utf-8",
+        "Cache-Control": `public, s-maxage=${cacheSeconds}, stale-while-revalidate=86400`,
+      },
+    });
 
-  await cache.put(cacheKey, res.clone());
-  return res;
+    await cache.put(cacheKey, res.clone());
+    return res;
+  } catch (e: any) {
+    const msg = (e?.message || "Unknown error").toString();
+    return new Response(`Error: ${msg.slice(0, 1000)}`, { status: 500 });
+  }
 }

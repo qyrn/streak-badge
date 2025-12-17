@@ -97,7 +97,7 @@ function renderCard(stats: {
   const bg = "#ffffff";
 
   const font =
-    'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"';
+    "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji";
 
   const totalRange = `${fmt(stats.firstActive)} - Present`;
   const curRange = `${fmt(stats.currentStart)} - ${fmt(stats.currentEnd)}`;

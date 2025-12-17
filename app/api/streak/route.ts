@@ -97,9 +97,11 @@ function renderCard(stats: {
   const border = "#e5e7eb";
   const bg = "#ffffff";
 
-  const leftX = colW / 2;
-  const midX = colW + colW / 2;
-  const rightX = colW * 2 + colW / 2;
+const innerW = colW - pad * 2; // largeur utile dans une colonne
+const leftCX = colW / 2;
+const midCX = colW + colW / 2;
+const rightCX = colW * 2 + colW / 2;
+
 
   const totalRange = `${fmt(stats.firstActive)} - Present`;
   const curRange = `${fmt(stats.currentStart)} - ${fmt(stats.currentEnd)}`;

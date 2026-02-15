@@ -28,7 +28,7 @@ async function fetchLatestFilm(username: string): Promise<FilmData> {
   const ratingMatch = xml.match(/<letterboxd:memberRating>([^<]+)<\/letterboxd:memberRating>/);
   const rating = ratingMatch ? parseFloat(ratingMatch[1]) : 0;
 
-  const posterMatch = xml.match(/<description>.*?src="([^"]+)".*?<\/description>/s);
+  const posterMatch = xml.match(/<description>[^]*?src="([^"]+)"[^]*?<\/description>/);
   const posterUrl = posterMatch?.[1] ?? "";
 
   const dateMatch = xml.match(/<letterboxd:watchedDate>([^<]+)<\/letterboxd:watchedDate>/);

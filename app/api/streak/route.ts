@@ -183,7 +183,7 @@ export async function GET(req: Request) {
     const token = process.env.GITHUB_TOKEN;
     if (!token) return new Response("Missing GITHUB_TOKEN", { status: 500 });
 
-    const allowedUser = process.env.ALLOWED_USER || "vestal2k";
+    const allowedUser = process.env.ALLOWED_USER || "qyrn";
     const cacheSeconds = Number(process.env.CACHE_SECONDS || "21600");
 
     const url = new URL(req.url);

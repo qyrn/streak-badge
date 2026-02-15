@@ -6,6 +6,7 @@ interface FilmData {
   rating: number;
   posterUrl: string;
   watchedDate: string;
+  liked: boolean;
 }
 
 async function fetchLatestFilm(username: string): Promise<FilmData> {
@@ -34,7 +35,10 @@ async function fetchLatestFilm(username: string): Promise<FilmData> {
   const dateMatch = xml.match(/<letterboxd:watchedDate>([^<]+)<\/letterboxd:watchedDate>/);
   const watchedDate = dateMatch?.[1] ?? "";
 
-  return { title, year, rating, posterUrl, watchedDate };
+  const likedMatch = xml.match(/<letterboxd:memberLike>([^<]+)<\/letterboxd:memberLike>/);
+  const liked = likedMatch?.[1] === "Yes";
+
+  return { title, year, rating, posterUrl, watchedDate, liked };
 }
 
 function formatDate(dateStr: string): string {
@@ -49,24 +53,45 @@ function formatDate(dateStr: string): string {
   return `${Math.floor(diff / 365)}y`;
 }
 
-function renderStars(rating: number): string {
+function renderStars(rating: number, startX: number, y: number): string {
   const fullStars = Math.floor(rating);
   const halfStar = rating % 1 >= 0.5;
   const starColor = "#00e054";
   const emptyColor = "#456";
 
   let stars = "";
-  const starWidth = 16;
-  const startX = 85;
-  const y = 72;
+  const size = 12;
+  const gap = 2;
+
+  const starPath = (cx: number, cy: number, fill: string) => {
+    const r1 = size / 2;
+    const r2 = r1 * 0.4;
+    let d = "";
+    for (let i = 0; i < 5; i++) {
+      const angle1 = (i * 72 - 90) * Math.PI / 180;
+      const angle2 = ((i * 72) + 36 - 90) * Math.PI / 180;
+      const x1 = cx + r1 * Math.cos(angle1);
+      const y1 = cy + r1 * Math.sin(angle1);
+      const x2 = cx + r2 * Math.cos(angle2);
+      const y2 = cy + r2 * Math.sin(angle2);
+      d += (i === 0 ? "M" : "L") + `${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} `;
+    }
+    d += "Z";
+    return `<path d="${d}" fill="${fill}"/>`;
+  };
 
   for (let i = 0; i < 5; i++) {
-    const x = startX + i * (starWidth + 3);
+    const cx = startX + i * (size + gap) + size / 2;
     const fill = i < fullStars ? starColor : (i === fullStars && halfStar ? starColor : emptyColor);
-    stars += `<polygon points="${x},${y - 7} ${x + 5},${y - 2} ${x + 8},${y - 9} ${x + 11},${y - 2} ${x + 16},${y - 7} ${x + 13},${y + 2} ${x + 14},${y + 9} ${x + 8},${y + 5} ${x + 2},${y + 9} ${x + 3},${y + 2}" fill="${fill}"/>`;
+    stars += starPath(cx, y, fill);
   }
 
   return stars;
+}
+
+function renderHeart(x: number, y: number, filled: boolean): string {
+  const color = filled ? "#ff6b6b" : "#456";
+  return `<path d="M${x},${y + 3} C${x - 3},${y} ${x - 6},${y + 1} ${x - 6},${y + 4} C${x - 6},${y + 7} ${x},${y + 11} ${x},${y + 11} C${x},${y + 11} ${x + 6},${y + 7} ${x + 6},${y + 4} C${x + 6},${y + 1} ${x + 3},${y} ${x},${y + 3} Z" fill="${color}"/>`;
 }
 
 async function fetchPosterBase64(posterUrl: string): Promise<string> {
@@ -89,11 +114,10 @@ async function fetchPosterBase64(posterUrl: string): Promise<string> {
 }
 
 async function renderBadge(data: FilmData): Promise<string> {
-  const W = 350;
-  const H = 100;
+  const W = 300;
+  const H = 85;
 
   const bg = "#14181c";
-  const accent = "#00e054";
   const textLight = "#ffffff";
   const textMuted = "#9ab";
   const border = "#456";
@@ -103,26 +127,27 @@ async function renderBadge(data: FilmData): Promise<string> {
   const posterBase64 = await fetchPosterBase64(data.posterUrl);
 
   const posterSection = posterBase64
-    ? `<defs><clipPath id="poster-clip"><rect x="10" y="10" width="53" height="80" rx="4"/></clipPath></defs>
-       <image href="${posterBase64}" x="10" y="10" width="53" height="80" clip-path="url(#poster-clip)" preserveAspectRatio="xMidYMid slice"/>`
-    : `<rect x="10" y="10" width="53" height="80" rx="4" fill="${border}"/>`;
+    ? `<defs><clipPath id="poster-clip"><rect x="8" y="8" width="45" height="69" rx="3"/></clipPath></defs>
+       <image href="${posterBase64}" x="8" y="8" width="45" height="69" clip-path="url(#poster-clip)" preserveAspectRatio="xMidYMid slice"/>`
+    : `<rect x="8" y="8" width="45" height="69" rx="3" fill="${border}"/>`;
 
-  const displayTitle = data.title.length > 22 ? data.title.slice(0, 21) + "…" : data.title;
+  const displayTitle = data.title.length > 18 ? data.title.slice(0, 17) + "…" : data.title;
   const dateAgo = formatDate(data.watchedDate);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <rect width="${W}" height="${H}" rx="10" fill="${bg}"/>
-  <rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="10" fill="none" stroke="${border}"/>
+  <rect width="${W}" height="${H}" rx="8" fill="${bg}"/>
+  <rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="8" fill="none" stroke="${border}"/>
 
   ${posterSection}
 
-  <text x="75" y="35" fill="${textLight}" font-size="18" font-weight="600" font-family="${font}">${displayTitle}</text>
-  <text x="75" y="54" fill="${textMuted}" font-size="13" font-family="${font}">${data.year}</text>
+  <text x="62" y="28" fill="${textLight}" font-size="15" font-weight="600" font-family="${font}">${displayTitle}</text>
+  <text x="62" y="44" fill="${textMuted}" font-size="12" font-family="${font}">${data.year}</text>
 
-  ${renderStars(data.rating)}
+  ${renderStars(data.rating, 62, 60)}
+  ${renderHeart(W - 22, 56, data.liked)}
 
-  <text x="${W - 15}" y="90" text-anchor="end" fill="${textMuted}" font-size="12" font-family="${font}">${dateAgo}</text>
+  <text x="${W - 12}" y="75" text-anchor="end" fill="${textMuted}" font-size="11" font-family="${font}">${dateAgo}</text>
 </svg>`;
 }
 

@@ -56,14 +56,14 @@ function renderStars(rating: number): string {
   const emptyColor = "#456";
 
   let stars = "";
-  const starWidth = 14;
-  const startX = 70;
-  const y = 58;
+  const starWidth = 16;
+  const startX = 85;
+  const y = 72;
 
   for (let i = 0; i < 5; i++) {
-    const x = startX + i * (starWidth + 2);
+    const x = startX + i * (starWidth + 3);
     const fill = i < fullStars ? starColor : (i === fullStars && halfStar ? starColor : emptyColor);
-    stars += `<polygon points="${x},${y - 6} ${x + 4},${y - 2} ${x + 7},${y - 8} ${x + 10},${y - 2} ${x + 14},${y - 6} ${x + 11},${y + 1} ${x + 12},${y + 7} ${x + 7},${y + 4} ${x + 2},${y + 7} ${x + 3},${y + 1}" fill="${fill}"/>`;
+    stars += `<polygon points="${x},${y - 7} ${x + 5},${y - 2} ${x + 8},${y - 9} ${x + 11},${y - 2} ${x + 16},${y - 7} ${x + 13},${y + 2} ${x + 14},${y + 9} ${x + 8},${y + 5} ${x + 2},${y + 9} ${x + 3},${y + 2}" fill="${fill}"/>`;
   }
 
   return stars;
@@ -89,8 +89,8 @@ async function fetchPosterBase64(posterUrl: string): Promise<string> {
 }
 
 async function renderBadge(data: FilmData): Promise<string> {
-  const W = 280;
-  const H = 80;
+  const W = 350;
+  const H = 100;
 
   const bg = "#14181c";
   const accent = "#00e054";
@@ -103,26 +103,26 @@ async function renderBadge(data: FilmData): Promise<string> {
   const posterBase64 = await fetchPosterBase64(data.posterUrl);
 
   const posterSection = posterBase64
-    ? `<defs><clipPath id="poster-clip"><rect x="8" y="8" width="42" height="64" rx="3"/></clipPath></defs>
-       <image href="${posterBase64}" x="8" y="8" width="42" height="64" clip-path="url(#poster-clip)" preserveAspectRatio="xMidYMid slice"/>`
-    : `<rect x="8" y="8" width="42" height="64" rx="3" fill="${border}"/>`;
+    ? `<defs><clipPath id="poster-clip"><rect x="10" y="10" width="53" height="80" rx="4"/></clipPath></defs>
+       <image href="${posterBase64}" x="10" y="10" width="53" height="80" clip-path="url(#poster-clip)" preserveAspectRatio="xMidYMid slice"/>`
+    : `<rect x="10" y="10" width="53" height="80" rx="4" fill="${border}"/>`;
 
-  const displayTitle = data.title.length > 18 ? data.title.slice(0, 17) + "…" : data.title;
+  const displayTitle = data.title.length > 22 ? data.title.slice(0, 21) + "…" : data.title;
   const dateAgo = formatDate(data.watchedDate);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <rect width="${W}" height="${H}" rx="8" fill="${bg}"/>
-  <rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="8" fill="none" stroke="${border}"/>
+  <rect width="${W}" height="${H}" rx="10" fill="${bg}"/>
+  <rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="10" fill="none" stroke="${border}"/>
 
   ${posterSection}
 
-  <text x="60" y="28" fill="${textLight}" font-size="15" font-weight="600" font-family="${font}">${displayTitle}</text>
-  <text x="60" y="44" fill="${textMuted}" font-size="12" font-family="${font}">${data.year}</text>
+  <text x="75" y="35" fill="${textLight}" font-size="18" font-weight="600" font-family="${font}">${displayTitle}</text>
+  <text x="75" y="54" fill="${textMuted}" font-size="13" font-family="${font}">${data.year}</text>
 
   ${renderStars(data.rating)}
 
-  <text x="${W - 12}" y="72" text-anchor="end" fill="${textMuted}" font-size="11" font-family="${font}">${dateAgo}</text>
+  <text x="${W - 15}" y="90" text-anchor="end" fill="${textMuted}" font-size="12" font-family="${font}">${dateAgo}</text>
 </svg>`;
 }
 

@@ -6,7 +6,6 @@ interface THMData {
   points: string;
   streak: string;
   rooms: string;
-  badges: string;
   avatarBase64: string;
 }
 
@@ -38,7 +37,6 @@ async function fetchTHMData(userId: string): Promise<THMData> {
 
   const smallNumbers = [...html.matchAll(/>(\d{1,2})</g)].map(m => m[1]);
   const rooms = smallNumbers[0] ?? "0";
-  const badges = smallNumbers[1] ?? "0";
 
   const avatarMatch = html.match(/tryhackme-images\.s3\.amazonaws\.com\/user-avatars\/[^"'\s\)]+/);
   const avatarUrl = avatarMatch ? `https://${avatarMatch[0]}` : "";
@@ -59,40 +57,35 @@ async function fetchTHMData(userId: string): Promise<THMData> {
     } catch {}
   }
 
-  return { username, rank, points, streak, rooms, badges, avatarBase64 };
+  return { username, rank, points, streak, rooms, avatarBase64 };
 }
 
 function renderBadge(data: THMData): string {
-  const W = 320;
+  const W = 300;
   const H = 85;
 
-  const bg = "#212c42";
-  const accent = "#88cc14";
+  const bg = "#1c2538";
+  const accent = "#a3ea2a";
   const textLight = "#ffffff";
-  const textMuted = "#9ca3af";
-  const border = "#2a3a55";
+  const textMuted = "#7a8ba3";
+  const border = "#2d3f5a";
 
   const font = "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial";
-
-  const avatarSection = data.avatarBase64
-    ? `<defs>
-        <clipPath id="avatar-clip"><circle cx="42" cy="42" r="28"/></clipPath>
-        <linearGradient id="avatar-border" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#88cc14"/>
-          <stop offset="100%" style="stop-color:#22aa44"/>
-        </linearGradient>
-      </defs>
-      <circle cx="42" cy="42" r="30" fill="url(#avatar-border)"/>
-      <image href="${data.avatarBase64}" x="14" y="14" width="56" height="56" clip-path="url(#avatar-clip)" preserveAspectRatio="xMidYMid slice"/>`
-    : `<circle cx="42" cy="42" r="28" fill="${border}"/>
-       <text x="42" y="48" text-anchor="middle" fill="${accent}" font-size="14" font-weight="bold" font-family="${font}">THM</text>`;
 
   const formatPoints = (p: string) => {
     const num = parseInt(p);
     if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-    if (num >= 1000) return (num / 1000).toFixed(0) + "K";
+    if (num >= 1000) return Math.floor(num / 1000) + "K";
     return p;
   };
+
+  const avatarSection = data.avatarBase64
+    ? `<defs>
+        <clipPath id="avatar-clip"><circle cx="42" cy="42" r="25"/></clipPath>
+      </defs>
+      <circle cx="42" cy="42" r="27" fill="none" stroke="${accent}" stroke-width="2"/>
+      <image href="${data.avatarBase64}" x="17" y="17" width="50" height="50" clip-path="url(#avatar-clip)" preserveAspectRatio="xMidYMid slice"/>`
+    : `<circle cx="42" cy="42" r="25" fill="${border}"/>`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -101,35 +94,23 @@ function renderBadge(data: THMData): string {
 
   ${avatarSection}
 
-  <text x="80" y="28" fill="${textLight}" font-size="15" font-weight="700" font-family="${font}">${data.username}</text>
-  <text x="80" y="28" fill="${textLight}" font-size="15" font-weight="700" font-family="${font}">
-    ${data.username}
-    <tspan fill="#f0c020"> ⚡</tspan>
-    <tspan fill="${textMuted}" font-size="12"> [${data.rank}]</tspan>
+  <text x="78" y="30" fill="${textLight}" font-size="16" font-weight="700" font-family="${font}">${data.username}</text>
+  <text x="78" y="30" fill="${textLight}" font-size="16" font-weight="700" font-family="${font}">
+    <tspan>${data.username}</tspan>
+    <tspan dx="5" fill="#f0c020" font-size="12">⚡</tspan>
+    <tspan dx="3" fill="${textMuted}" font-size="11">[${data.rank}]</tspan>
   </text>
 
-  <g transform="translate(80, 40)">
-    <text fill="#c080f0" font-size="11" font-family="${font}">🏆 ${formatPoints(data.points)}</text>
-  </g>
+  <text x="78" y="50" fill="${accent}" font-size="12" font-family="${font}">${formatPoints(data.points)} pts</text>
+  <text x="155" y="50" fill="${textMuted}" font-size="12" font-family="${font}">${data.streak}d streak</text>
 
-  <g transform="translate(145, 40)">
-    <text fill="${accent}" font-size="11" font-family="${font}">🔥 ${data.streak} days</text>
-  </g>
+  <text x="78" y="70" fill="${textMuted}" font-size="11" font-family="${font}">tryhackme.com</text>
 
-  <g transform="translate(80, 58)">
-    <text fill="#f08080" font-size="11" font-family="${font}">👤 ${data.rooms}</text>
-  </g>
-
-  <g transform="translate(120, 58)">
-    <text fill="#80a0f0" font-size="11" font-family="${font}">🚪 ${data.badges}</text>
-  </g>
-
-  <text x="80" y="75" fill="${textMuted}" font-size="10" font-family="${font}">tryhackme.com</text>
-
-  <g transform="translate(${W - 35}, 12)">
-    <text fill="${textMuted}" font-size="8" font-family="${font}" text-anchor="middle">Try</text>
-    <text y="9" fill="${textMuted}" font-size="8" font-family="${font}" text-anchor="middle">Hack</text>
-    <text y="18" fill="${textMuted}" font-size="8" font-family="${font}" text-anchor="middle">Me</text>
+  <g transform="translate(${W - 45}, 20)">
+    <rect width="35" height="45" rx="4" fill="${border}" opacity="0.5"/>
+    <text x="17.5" y="16" text-anchor="middle" fill="${textMuted}" font-size="9" font-weight="600" font-family="${font}">TRY</text>
+    <text x="17.5" y="28" text-anchor="middle" fill="${textMuted}" font-size="9" font-weight="600" font-family="${font}">HACK</text>
+    <text x="17.5" y="40" text-anchor="middle" fill="${accent}" font-size="9" font-weight="600" font-family="${font}">ME</text>
   </g>
 </svg>`;
 }

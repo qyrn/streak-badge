@@ -6,6 +6,7 @@ interface THMData {
   points: string;
   rooms: string;
   streak: string;
+  avatarBase64: string;
 }
 
 async function fetchTHMData(userId: string): Promise<THMData> {
@@ -31,13 +32,33 @@ async function fetchTHMData(userId: string): Promise<THMData> {
   const pointsMatch = html.match(/>(\d[\d,]+)</);
   const points = pointsMatch?.[1] ?? "0";
 
-  const streakMatch = html.match(/fire[^>]*>[^<]*?(\d+)/i);
-  const streak = streakMatch?.[1] ?? "0";
+  const avatarMatch = html.match(/tryhackme-images\.s3\.amazonaws\.com\/user-avatars\/[^"'\s]+/);
+  const avatarUrl = avatarMatch ? `https://${avatarMatch[0]}` : null;
 
-  const roomsMatch = html.match(/door[^>]*>[^<]*?(\d+)/i);
-  const rooms = roomsMatch?.[1] ?? "0";
+  const allNumbers = html.match(/>\s*(\d+)\s*</g);
+  let rooms = "0";
+  let streak = "0";
 
-  return { username, rank, points, rooms, streak };
+  if (allNumbers && allNumbers.length >= 4) {
+    const nums = allNumbers.map(n => n.replace(/[><\s]/g, ""));
+    rooms = nums[1] ?? "0";
+    streak = nums[2] ?? "0";
+  }
+
+  let avatarBase64 = "";
+  if (avatarUrl) {
+    try {
+      const avatarRes = await fetch(avatarUrl);
+      if (avatarRes.ok) {
+        const buffer = await avatarRes.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+        const contentType = avatarRes.headers.get("content-type") || "image/png";
+        avatarBase64 = `data:${contentType};base64,${base64}`;
+      }
+    } catch {}
+  }
+
+  return { username, rank, points, rooms, streak, avatarBase64 };
 }
 
 function renderBadge(data: THMData): string {
@@ -52,8 +73,19 @@ function renderBadge(data: THMData): string {
   const font =
     "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial";
 
+  const avatarSection = data.avatarBase64
+    ? `<defs>
+        <clipPath id="avatar-clip">
+          <circle cx="50" cy="50" r="26"/>
+        </clipPath>
+      </defs>
+      <circle cx="50" cy="50" r="28" fill="none" stroke="${accent}" stroke-width="3"/>
+      <image href="${data.avatarBase64}" x="24" y="24" width="52" height="52" clip-path="url(#avatar-clip)" preserveAspectRatio="xMidYMid slice"/>`
+    : `<circle cx="50" cy="50" r="28" fill="none" stroke="${accent}" stroke-width="3"/>
+       <text x="50" y="56" text-anchor="middle" fill="${accent}" font-size="18" font-weight="bold" font-family="${font}">THM</text>`;
+
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <linearGradient id="thm-grad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#1c2538"/>
@@ -64,8 +96,7 @@ function renderBadge(data: THMData): string {
   <rect width="${W}" height="${H}" rx="12" fill="url(#thm-grad)"/>
   <rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="12" fill="none" stroke="#30363d"/>
 
-  <circle cx="50" cy="50" r="28" fill="none" stroke="${accent}" stroke-width="3"/>
-  <text x="50" y="56" text-anchor="middle" fill="${accent}" font-size="18" font-weight="bold" font-family="${font}">THM</text>
+  ${avatarSection}
 
   <text x="95" y="40" fill="${textLight}" font-size="22" font-weight="bold" font-family="${font}">${data.username}</text>
   <text x="95" y="62" fill="${accent}" font-size="14" font-weight="600" font-family="${font}">Rank ${data.rank}</text>

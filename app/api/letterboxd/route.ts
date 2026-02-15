@@ -145,7 +145,7 @@ async function renderBadge(data: FilmData): Promise<string> {
   <text x="62" y="44" fill="${textMuted}" font-size="12" font-family="${font}">${data.year}</text>
 
   ${renderStars(data.rating, 62, 60)}
-  ${renderHeart(W - 22, 56, data.liked)}
+  ${data.liked ? renderHeart(62 + 5 * 14 + 8, 54, true) : ""}
 
   <text x="${W - 12}" y="75" text-anchor="end" fill="${textMuted}" font-size="11" font-family="${font}">${dateAgo}</text>
 </svg>`;

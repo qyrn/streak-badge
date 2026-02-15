@@ -6,7 +6,7 @@ interface THMData {
   points: string;
   rooms: string;
   streak: string;
-  avatarBase64: string;
+  avatarUrl: string;
 }
 
 async function fetchTHMData(userId: string): Promise<THMData> {
@@ -29,43 +29,25 @@ async function fetchTHMData(userId: string): Promise<THMData> {
   const rankMatch = html.match(/\[0x([0-9A-Fa-f]+)\]/);
   const rank = rankMatch ? `0x${rankMatch[1]}` : "N/A";
 
-  const pointsMatch = html.match(/>(\d[\d,]+)</);
+  const avatarMatch = html.match(/tryhackme-images\.s3\.amazonaws\.com\/user-avatars\/[^"'\s\)]+/);
+  const avatarUrl = avatarMatch ? `https://${avatarMatch[0]}` : "";
+
+  const trophyMatch = html.match(/trophy[^>]*>(\d+)/i);
+  const rooms = trophyMatch?.[1] ?? "0";
+
+  const fireMatch = html.match(/fire[^>]*>(\d+)/i);
+  const streak = fireMatch?.[1] ?? "0";
+
+  const pointsMatch = html.match(/>(\d{4,})</);
   const points = pointsMatch?.[1] ?? "0";
 
-  const avatarMatch = html.match(/tryhackme-images\.s3\.amazonaws\.com\/user-avatars\/[^"'\s]+/);
-  const avatarUrl = avatarMatch ? `https://${avatarMatch[0]}` : null;
-
-  const allNumbers = html.match(/>\s*(\d+)\s*</g);
-  let rooms = "0";
-  let streak = "0";
-
-  if (allNumbers && allNumbers.length >= 4) {
-    const nums = allNumbers.map(n => n.replace(/[><\s]/g, ""));
-    rooms = nums[1] ?? "0";
-    streak = nums[2] ?? "0";
-  }
-
-  let avatarBase64 = "";
-  if (avatarUrl) {
-    try {
-      const avatarRes = await fetch(avatarUrl);
-      if (avatarRes.ok) {
-        const buffer = await avatarRes.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-        const contentType = avatarRes.headers.get("content-type") || "image/png";
-        avatarBase64 = `data:${contentType};base64,${base64}`;
-      }
-    } catch {}
-  }
-
-  return { username, rank, points, rooms, streak, avatarBase64 };
+  return { username, rank, points, rooms, streak, avatarUrl };
 }
 
 function renderBadge(data: THMData): string {
   const W = 400;
   const H = 140;
 
-  const bg = "#1c2538";
   const accent = "#88cc14";
   const textLight = "#ffffff";
   const textMuted = "#9ca3af";
@@ -73,14 +55,12 @@ function renderBadge(data: THMData): string {
   const font =
     "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial";
 
-  const avatarSection = data.avatarBase64
-    ? `<defs>
-        <clipPath id="avatar-clip">
-          <circle cx="50" cy="50" r="26"/>
-        </clipPath>
-      </defs>
+  const avatarSection = data.avatarUrl
+    ? `<clipPath id="avatar-clip">
+        <circle cx="50" cy="50" r="26"/>
+      </clipPath>
       <circle cx="50" cy="50" r="28" fill="none" stroke="${accent}" stroke-width="3"/>
-      <image href="${data.avatarBase64}" x="24" y="24" width="52" height="52" clip-path="url(#avatar-clip)" preserveAspectRatio="xMidYMid slice"/>`
+      <image href="${data.avatarUrl}" x="24" y="24" width="52" height="52" clip-path="url(#avatar-clip)" preserveAspectRatio="xMidYMid slice"/>`
     : `<circle cx="50" cy="50" r="28" fill="none" stroke="${accent}" stroke-width="3"/>
        <text x="50" y="56" text-anchor="middle" fill="${accent}" font-size="18" font-weight="bold" font-family="${font}">THM</text>`;
 
@@ -91,12 +71,17 @@ function renderBadge(data: THMData): string {
       <stop offset="0%" style="stop-color:#1c2538"/>
       <stop offset="100%" style="stop-color:#0d1117"/>
     </linearGradient>
+    ${data.avatarUrl ? `<clipPath id="avatar-clip"><circle cx="50" cy="50" r="26"/></clipPath>` : ""}
   </defs>
 
   <rect width="${W}" height="${H}" rx="12" fill="url(#thm-grad)"/>
   <rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="12" fill="none" stroke="#30363d"/>
 
-  ${avatarSection}
+  ${data.avatarUrl
+    ? `<circle cx="50" cy="50" r="28" fill="none" stroke="${accent}" stroke-width="3"/>
+       <image href="${data.avatarUrl}" x="24" y="24" width="52" height="52" clip-path="url(#avatar-clip)" preserveAspectRatio="xMidYMid slice"/>`
+    : `<circle cx="50" cy="50" r="28" fill="none" stroke="${accent}" stroke-width="3"/>
+       <text x="50" y="56" text-anchor="middle" fill="${accent}" font-size="18" font-weight="bold" font-family="${font}">THM</text>`}
 
   <text x="95" y="40" fill="${textLight}" font-size="22" font-weight="bold" font-family="${font}">${data.username}</text>
   <text x="95" y="62" fill="${accent}" font-size="14" font-weight="600" font-family="${font}">Rank ${data.rank}</text>
@@ -104,7 +89,7 @@ function renderBadge(data: THMData): string {
   <line x1="20" y1="90" x2="${W - 20}" y2="90" stroke="#30363d"/>
 
   <g transform="translate(40, 115)">
-    <text x="0" y="0" text-anchor="middle" fill="${textLight}" font-size="16" font-weight="bold" font-family="${font}">${data.points}</text>
+    <text x="0" y="0" text-anchor="middle" fill="${textLight}" font-size="16" font-weight="bold" font-family="${font}">${Number(data.points).toLocaleString("en-US")}</text>
     <text x="0" y="16" text-anchor="middle" fill="${textMuted}" font-size="11" font-family="${font}">points</text>
   </g>
 

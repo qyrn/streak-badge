@@ -31,10 +31,10 @@ async function fetchTHMData(userId: string): Promise<THMData> {
   const pointsMatch = html.match(/>(\d[\d,]+)</);
   const points = pointsMatch?.[1] ?? "0";
 
-  const streakMatch = html.match(/fire[^>]*>.*?(\d+)/is);
+  const streakMatch = html.match(/fire[^>]*>[^<]*?(\d+)/i);
   const streak = streakMatch?.[1] ?? "0";
 
-  const roomsMatch = html.match(/door[^>]*>.*?(\d+)/is);
+  const roomsMatch = html.match(/door[^>]*>[^<]*?(\d+)/i);
   const rooms = roomsMatch?.[1] ?? "0";
 
   return { username, rank, points, rooms, streak };

@@ -82,73 +82,30 @@ function renderCard(stats: {
   maxStart: string;
   maxEnd: string;
 }) {
-  const W = 960;
-  const H = 220;
-  const colW = W / 3;
-
-  const leftCX = colW / 2;
-  const midCX = colW + colW / 2;
-  const rightCX = colW * 2 + colW / 2;
+  const W = 300;
+  const H = 85;
 
   const orange = "#f59e0b";
-  const textDark = "#111827";
-  const textMuted = "#6b7280";
-  const border = "#e5e7eb";
-  const bg = "#ffffff";
+  const textLight = "#ffffff";
+  const textMuted = "#9ab";
+  const border = "#456";
+  const bg = "#14181c";
 
-  const font =
-    "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji";
-
-  const totalRange = `${fmt(stats.firstActive)} - Present`;
-  const curRange = `${fmt(stats.currentStart)} - ${fmt(stats.currentEnd)}`;
-  const maxRange =
-    stats.maxStart && stats.maxEnd ? `${fmt(stats.maxStart)} - ${fmt(stats.maxEnd)}` : "";
-
-  const flamePath =
-    "M10 2c1.8 3.1 1.4 4.9-.7 7.3C7.8 11 7 12.2 7 13.8 7 16.1 8.9 18 11.2 18c2.6 0 4.8-2.2 4.8-4.8 0-3-2.3-4.8-3.7-7.3-.4 1.5-1.3 2.4-2.3 3.2.3-1.9-.1-3.4 0-6.9z";
+  const font = "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial";
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="14" fill="${bg}" stroke="${border}"/>
-  <line x1="${colW}" y1="22" x2="${colW}" y2="${H - 22}" stroke="${border}" />
-  <line x1="${colW * 2}" y1="22" x2="${colW * 2}" y2="${H - 22}" stroke="${border}" />
+  <rect width="${W}" height="${H}" rx="8" fill="${bg}"/>
+  <rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="8" fill="none" stroke="${border}"/>
 
-  <text x="${leftCX}" y="82" text-anchor="middle"
-        fill="${textDark}" font-size="54" font-weight="800"
-        font-family="${font}">${stats.total.toLocaleString("en-US")}</text>
-  <text x="${leftCX}" y="122" text-anchor="middle"
-        fill="${textDark}" font-size="20"
-        font-family="${font}">Total Contributions</text>
-  <text x="${leftCX}" y="156" text-anchor="middle"
-        fill="${textMuted}" font-size="15"
-        font-family="${font}">${totalRange}</text>
-
-  <g transform="translate(${midCX}, 78)">
-    <circle cx="0" cy="0" r="54" fill="none" stroke="${orange}" stroke-width="10" />
-    <text x="0" y="12" text-anchor="middle"
-          fill="${textDark}" font-size="44" font-weight="900"
-          font-family="${font}">${stats.current}</text>
-    <g transform="translate(-11,-74)">
-      <path d="${flamePath}" fill="${orange}" />
-    </g>
+  <g transform="translate(42, 42)">
+    <circle cx="0" cy="0" r="28" fill="none" stroke="${orange}" stroke-width="3"/>
+    <text x="0" y="8" text-anchor="middle" fill="${textLight}" font-size="22" font-weight="800" font-family="${font}">${stats.current}</text>
   </g>
 
-  <text x="${midCX}" y="165" text-anchor="middle"
-        fill="${orange}" font-size="20" font-weight="800"
-        font-family="${font}">Current Streak</text>
-  <text x="${midCX}" y="192" text-anchor="middle"
-        fill="${textMuted}" font-size="15"
-        font-family="${font}">${curRange}</text>
-
-  <text x="${rightCX}" y="82" text-anchor="middle"
-        fill="${textDark}" font-size="54" font-weight="800"
-        font-family="${font}">${stats.max.toLocaleString("en-US")}</text>
-  <text x="${rightCX}" y="122" text-anchor="middle"
-        fill="${textDark}" font-size="20"
-        font-family="${font}">Longest Streak</text>
-  <text x="${rightCX}" y="156" text-anchor="middle"
-        fill="${textMuted}" font-size="15"
-        font-family="${font}">${maxRange}</text>
+  <text x="85" y="28" fill="${textLight}" font-size="15" font-weight="600" font-family="${font}">GitHub Streak</text>
+  <text x="85" y="48" fill="${orange}" font-size="12" font-family="${font}">${stats.current}d current · ${stats.max}d best</text>
+  <text x="85" y="68" fill="${textMuted}" font-size="11" font-family="${font}">${stats.total.toLocaleString("en-US")} contributions</text>
 </svg>`;
 }
 

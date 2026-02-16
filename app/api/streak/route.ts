@@ -110,7 +110,7 @@ function renderCard(stats: {
   <line x1="${colW}" y1="15" x2="${colW}" y2="${H - 15}" stroke="${border}" opacity="0.5"/>
   <line x1="${colW * 2}" y1="15" x2="${colW * 2}" y2="${H - 15}" stroke="${border}" opacity="0.5"/>
 
-  <g transform="translate(${colW / 2}, 35)">
+  <g transform="translate(${colW / 2}, 40)">
     <text x="0" y="0" text-anchor="middle" fill="${textLight}" font-size="24" font-weight="700" font-family="${font}">${stats.total.toLocaleString("en-US")}</text>
     <text x="0" y="18" text-anchor="middle" fill="${textMuted}" font-size="10" font-family="${font}">contributions</text>
   </g>
@@ -122,7 +122,7 @@ function renderCard(stats: {
   <text x="${colW + colW / 2}" y="62" text-anchor="middle" fill="${orange}" font-size="10" font-weight="600" font-family="${font}">current</text>
   <text x="${colW + colW / 2}" y="74" text-anchor="middle" fill="${textMuted}" font-size="9" font-family="${font}">streak</text>
 
-  <g transform="translate(${colW * 2 + colW / 2}, 35)">
+  <g transform="translate(${colW * 2 + colW / 2}, 40)">
     <text x="0" y="0" text-anchor="middle" fill="${textLight}" font-size="24" font-weight="700" font-family="${font}">${stats.max}</text>
     <text x="0" y="18" text-anchor="middle" fill="${textMuted}" font-size="10" font-family="${font}">best streak</text>
   </g>

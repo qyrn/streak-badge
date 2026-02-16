@@ -85,7 +85,7 @@ function renderCard(stats: {
   const W = 300;
   const H = 85;
 
-  const accent = "#58a6ff";
+  const accent = "#3fb950";
   const orange = "#f59e0b";
   const textLight = "#e6edf3";
   const textMuted = "#7d8590";
@@ -94,33 +94,41 @@ function renderCard(stats: {
 
   const font = "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial";
 
-  const githubLogo = `<path fill="${textMuted}" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>`;
+  const githubLogo = `<path fill="${textLight}" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>`;
+
+  const flame = `<path fill="${orange}" d="M8 1c1.2 2 .9 3.2-.5 4.8C6.4 7 6 7.8 6 8.9c0 1.5 1.3 2.7 2.8 2.7 1.7 0 3.2-1.4 3.2-3.2 0-2-1.5-3.2-2.5-4.8-.3 1-.9 1.6-1.5 2.1.2-1.2-.1-2.2 0-4.6z"/>`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <linearGradient id="streak-ring" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:${orange}"/>
-      <stop offset="100%" style="stop-color:#ea580c"/>
+      <stop offset="100%" style="stop-color:#dc2626"/>
     </linearGradient>
   </defs>
 
   <rect width="${W}" height="${H}" rx="8" fill="${bg}"/>
   <rect x="0.5" y="0.5" width="${W - 1}" height="${H - 1}" rx="8" fill="none" stroke="${border}"/>
 
-  <g transform="translate(42, 42)">
-    <circle cx="0" cy="0" r="26" fill="none" stroke="url(#streak-ring)" stroke-width="4"/>
-    <text x="0" y="7" text-anchor="middle" fill="${textLight}" font-size="20" font-weight="700" font-family="${font}">${stats.current}</text>
-    <text x="0" y="18" text-anchor="middle" fill="${textMuted}" font-size="8" font-family="${font}">days</text>
+  <g transform="translate(45, 42)">
+    <circle cx="0" cy="0" r="28" fill="none" stroke="url(#streak-ring)" stroke-width="4"/>
+    <text x="0" y="6" text-anchor="middle" fill="${textLight}" font-size="22" font-weight="700" font-family="${font}">${stats.current}</text>
+    <text x="0" y="19" text-anchor="middle" fill="${textMuted}" font-size="9" font-family="${font}">days</text>
   </g>
 
-  <g transform="translate(80, 18)">
-    <g transform="scale(0.7)">${githubLogo}</g>
-    <text x="22" y="12" fill="${textLight}" font-size="14" font-weight="600" font-family="${font}">GitHub Streak</text>
+  <g transform="translate(88, 20)">
+    <g transform="scale(0.65) translate(0, -2)">${githubLogo}</g>
+    <text x="18" y="10" fill="${textLight}" font-size="13" font-weight="600" font-family="${font}">GitHub Streak</text>
   </g>
 
-  <text x="80" y="50" fill="${accent}" font-size="11" font-family="${font}">${stats.total.toLocaleString("en-US")} contributions</text>
-  <text x="80" y="68" fill="${textMuted}" font-size="11" font-family="${font}">Best: ${stats.max} days</text>
+  <g transform="translate(88, 42)">
+    <text x="0" y="0" fill="${accent}" font-size="12" font-weight="500" font-family="${font}">${stats.total.toLocaleString("en-US")} contributions</text>
+  </g>
+
+  <g transform="translate(88, 62)">
+    <g transform="scale(0.9) translate(0, -10)">${flame}</g>
+    <text x="14" y="0" fill="${textMuted}" font-size="11" font-family="${font}">Best: ${stats.max} days</text>
+  </g>
 </svg>`;
 }
 
@@ -144,7 +152,7 @@ function buildMultiYearQuery(years: number[]) {
     .map((y) => {
       const from = `${y}-01-01T00:00:00Z`;
       const to = `${y + 1}-01-01T00:00:00Z`;
-      return `y${y}: contributionsCollection(from: "${from}", to: "${to}") { contributionCalendar { weeks { contributionDays { date contributionCount } } } }`;
+      return `y${y}: contributionsCollection(from: "${from}", to: "${to}") { contributionCalendar { weeks { contributionDays { date contributionCount } } } restrictedContributionsCount }`;
     })
     .join("\n");
   return `query($login:String!){ user(login:$login){ ${fields} } }`;
@@ -181,14 +189,18 @@ export async function GET(req: Request) {
 
     const u = multiRes?.data?.user ?? {};
     const allDays: Day[] = [];
+    let privateContribs = 0;
 
     for (const y of years) {
-      const weeks = u?.[`y${y}`]?.contributionCalendar?.weeks ?? [];
+      const yearData = u?.[`y${y}`];
+      const weeks = yearData?.contributionCalendar?.weeks ?? [];
       const days: Day[] = weeks.flatMap((w: any) => w.contributionDays);
       allDays.push(...days);
+      privateContribs += yearData?.restrictedContributionsCount ?? 0;
     }
 
     const stats = computeAllStats(allDays);
+    stats.total += privateContribs;
     const body = renderCard(stats);
 
     return new Response(body, {
